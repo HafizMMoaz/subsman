@@ -40,10 +40,11 @@ const subscriptionSchema = new mongoose.Schema({
     },
     startDate: {
         type: Date,
-        default: Date.now,
+        required: [true, 'Start Date is required'],
+        //default: Date.now,
         validate: {
-            validator: function (value) { return value <= new Date() },
-            message: 'Start Date cannot be in the future'
+            validator: function (value) { return value > new Date() },
+            message: 'Start Date cannot be in the past'
         }
     },
     renewalDate: {

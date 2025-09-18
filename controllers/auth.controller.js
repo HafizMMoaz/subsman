@@ -9,7 +9,7 @@ export const register = async (req, res, next) => {
     const session = await mongoose.startSession();
     session.startTransaction();
     try {
-        const { name, email, password } = req.body;
+        const { name, email, password, role = "user" } = req.body;
 
         //Check if user already exists
         const existingUser = await User.findOne({ email });
@@ -24,7 +24,7 @@ export const register = async (req, res, next) => {
         const hashedPassword = await bcrypt.hash(password, salt);
 
         // Create new user
-        const newUsers = await User.create([{ name, email, password: hashedPassword }], { session });
+        const newUsers = await User.create([{ name, email, password: hashedPassword, role }], { session });
 
         const token = jwt.sign(
             { userId: newUsers[0]._id, email: newUsers[0].email },
@@ -88,5 +88,3 @@ export const login = async (req, res, next) => {
         next(error);
     }
 }
-
-export const logout = async (req, res) => { }

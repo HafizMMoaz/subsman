@@ -1,0 +1,490 @@
+<?php
+require_once 'includes/header.php';
+
+if ($isAdmin != 1) {
+    header('Location: index.php');
+    exit;
+}
+
+// get admin settings from admin table
+$stmt = $db->prepare('SELECT * FROM admin');
+$result = $stmt->execute();
+$settings = $result->fetchArray(SQLITE3_ASSOC);
+
+// get OIDC settings
+$stmt = $db->prepare('SELECT * FROM oauth_settings WHERE id = 1');
+$result = $stmt->execute();
+$oidcSettings = $result->fetchArray(SQLITE3_ASSOC);
+
+if ($oidcSettings === false) {
+    // Table is empty or no row with id=1, set defaults
+    $oidcSettings = [
+        'name' => '',
+        'client_id' => '',
+        'client_secret' => '',
+        'authorization_url' => '',
+        'token_url' => '',
+        'user_info_url' => '',
+        'redirect_url' => '',
+        'logout_url' => '',
+        'user_identifier_field' => 'sub',
+        'scopes' => 'openid email profile',
+        'auth_style' => 'auto',
+        'auto_create_user' => 0,
+        'password_login_disabled' => 0
+    ];
+}
+
+// get user accounts
+$stmt = $db->prepare('SELECT id, username, email FROM user ORDER BY id ASC');
+$result = $stmt->execute();
+
+$users = [];
+while ($row = $result->fetchArray(SQLITE3_ASSOC)) {
+    $users[] = $row;
+}
+$userCount = is_array($users) ? count($users) : 0;
+
+$loginDisabledAllowed = $userCount == 1 && $settings['registrations_open'] == 0;
+?>
+
+<section class="contain settings">
+
+    <section class="account-section">
+        <header>
+            <h2><?= translate('registrations', $i18n) ?></h2>
+        </header>
+        <div class="admin-form">
+            <div class="form-group-inline">
+                <input type="checkbox" id="registrations" <?= $settings['registrations_open'] ? 'checked' : '' ?> />
+                <label for="registrations"><?= translate('enable_user_registrations', $i18n) ?></label>
+            </div>
+            <div class="form-group">
+                <label for="maxUsers"><?= translate('maximum_number_users', $i18n) ?></label>
+                <input type="number" id="maxUsers" autocomplete="off" value="<?= $settings['max_users'] ?>" />
+            </div>
+            <div class="settings-notes">
+                <p>
+                    <i class="fa-solid fa-circle-info"></i>
+                    <?= translate('max_users_info', $i18n) ?>
+                </p>
+                <p>
+                    <i class="fa-solid fa-circle-info"></i>
+                    By enabling user registrations, the setting to disable login will be unavailable.
+                </p>
+            </div>
+            <div class="form-group-inline">
+                <input type="checkbox" id="requireEmail" <?= $settings['require_email_verification'] ? 'checked' : '' ?>
+                    <?= empty($settings['smtp_address']) ? 'disabled' : '' ?> />
+                <label for="requireEmail">
+                    <?= translate('require_email_verification', $i18n) ?>
+                </label>
+            </div>
+            <?php
+            if (empty($settings['smtp_address'])) {
+                ?>
+                <div class="settings-notes">
+                    <p>
+                        <i class="fa-solid fa-circle-info"></i>
+                        <?= translate('configure_smtp_settings_to_enable', $i18n) ?>
+                    </p>
+                </div>
+                <?php
+            }
+            ?>
+            <div class="form-group">
+                <label for="serverUrl"><?= translate('server_url', $i18n) ?></label>
+                <input type="text" id="serverUrl" autocomplete="off" value="<?= $settings['server_url'] ?>" />
+            </div>
+            <div class="settings-notes">
+                <p>
+                    <i class="fa-solid fa-circle-info"></i>
+                    <?= translate('server_url_info', $i18n) ?>
+                </p>
+                <p>
+                    <i class="fa-solid fa-circle-info"></i>
+                    <?= translate('server_url_password_reset', $i18n) ?>
+                </p>
+            </div>
+            <hr>
+            <div class="form-group-inline">
+                <input type="checkbox" id="disableLogin" <?= $settings['login_disabled'] ? 'checked' : '' ?>
+                    <?= $loginDisabledAllowed ? '' : 'disabled' ?> />
+                <label for="disableLogin"><?= translate('disable_login', $i18n) ?></label>
+            </div>
+            <div class="settings-notes">
+                <p>
+                    <i class="fa fa-exclamation-triangle" aria-hidden="true"></i>
+                    <?= translate('disable_login_info', $i18n) ?>
+                </p>
+                <p>
+                    <i class="fa fa-exclamation-triangle" aria-hidden="true"></i>
+                    <?= translate('disable_login_info2', $i18n) ?>
+                </p>
+            </div>
+            <div class="buttons">
+                <input type="submit" class="thin mobile-grow" value="<?= translate('save', $i18n) ?>"
+                    id="saveAccountRegistrations" onClick="saveAccountRegistrationsButton()" />
+            </div>
+        </div>
+    </section>
+
+    <?php
+    if ($userCount >= 0) {
+        ?>
+
+        <section class="account-section">
+            <header>
+                <h2><?= translate('user_management', $i18n) ?></h2>
+            </header>
+            <div class="user-list">
+                <?php
+                foreach ($users as $user) {
+                    $userIcon = $user['id'] == 1 ? 'fa-user-tie' : 'fa-id-badge';
+                    ?>
+                    <div class="form-group-inline" data-userid="<?= $user['id'] ?>">
+                        <div class="user-list-row">
+                            <div title="<?= translate('username', $i18n) ?>">
+                                <div class="user-list-icon">
+                                    <i class="fa-solid <?= $userIcon ?>"></i>
+                                </div>
+                                <?= $user['username'] ?>
+                            </div>
+                            <div title="<?= translate('email', $i18n) ?>">
+                                <div class="user-list-icon">
+                                    <i class="fa-solid fa-envelope"></i>
+                                </div>
+                                <a href="mailto:<?= $user['email'] ?>"><?= $user['email'] ?></a>
+                            </div>
+                        </div>
+                        <div>
+                            <?php
+                            if ($user['id'] != 1) {
+                                ?>
+                                <button class="image-button medium" onClick="removeUser(<?= $user['id'] ?>)"
+                                    title="<?= translate('delete_user', $i18n) ?>">
+                                    <?php include "images/siteicons/svg/delete.php"; ?>
+                                </button>
+                                <?php
+                            } else {
+                                ?>
+                                <button class="image-button medium disabled" disabled
+                                    title="<?= translate('delete_user', $i18n) ?>">
+                                    <?php include "images/siteicons/svg/delete.php"; ?>
+                                </button>
+                                <?php
+                            }
+                            ?>
+
+                        </div>
+                    </div>
+                    <?php
+                }
+                ?>
+            </div>
+            <div class="settings-notes">
+                <p>
+                    <i class="fa-solid fa-circle-info"></i>
+                    <?= translate('delete_user_info', $i18n) ?>
+                </p>
+            </div>
+            <h2><?= translate('create_user', $i18n) ?></h2>
+            <div class="form-group">
+                <input type="text" id="newUsername" autocomplete="off"
+                    placeholder="<?= translate('username', $i18n) ?>" />
+            </div>
+            <div class="form-group">
+                <input type="email" id="newEmail" autocomplete="off"
+                    placeholder="<?= translate('email', $i18n) ?>" />
+            </div>
+            <div class="form-group-inline">
+                <input type="password" id="newPassword" autocomplete="off"
+                    placeholder="<?= translate('password', $i18n) ?>" />
+                <input type="submit" class="thin" value="<?= translate('add', $i18n) ?>" id="addUserButton"
+                    onClick="addUserButton()" />
+            </div>
+        </section>
+
+        <?php
+    }
+    ?>
+
+    <section class="account-section">
+        <header>
+            <h2><?= translate('oidc_settings', $i18n) ?></h2>
+        </header>
+        <div class="admin-form">
+            <div class="form-group-inline">
+                <input type="checkbox" id="oidcEnabled" <?= $settings['oidc_oauth_enabled'] ? 'checked' : '' ?>
+                    onchange="toggleOidcEnabled()" />
+                <label for="oidcEnabled"><?= translate('oidc_oauth_enabled', $i18n) ?></label>
+            </div>
+            <div class="form-group">
+                <input type="text" id="oidcName" placeholder="Provider Name" autocomplete="off"
+                    value="<?= $oidcSettings['name'] ?>" />
+            </div>
+            <div class="form-group">
+                <input type="text" id="oidcClientId" placeholder="Client ID" autocomplete="off"
+                    value="<?= $oidcSettings['client_id'] ?>" />
+            </div>
+            <div class="form-group">
+                <input type="text" id="oidcClientSecret" placeholder="Client Secret" autocomplete="off"
+                    value="<?= $oidcSettings['client_secret'] ?>" />
+            </div>
+            <div class="form-group">
+                <input type="text" id="oidcAuthUrl" placeholder="Auth URL" autocomplete="off"
+                    value="<?= $oidcSettings['authorization_url'] ?>" />
+            </div>
+            <div class="form-group">
+                <input type="text" id="oidcTokenUrl" placeholder="Token URL" autocomplete="off"
+                    value="<?= $oidcSettings['token_url'] ?>" />
+            </div>
+            <div class="form-group">
+                <input type="text" id="oidcUserInfoUrl" placeholder="User Info URL" autocomplete="off"
+                    value="<?= $oidcSettings['user_info_url'] ?>" />
+            </div>
+            <div class="form-group">
+                <input type="text" id="oidcRedirectUrl" placeholder="Redirect URL" autocomplete="off"
+                    value="<?= $oidcSettings['redirect_url'] ?>" />
+            </div>
+            <div class="form-group">
+                <input type="text" id="oidcLogoutUrl" placeholder="Logout URL" autocomplete="off"
+                    value="<?= $oidcSettings['logout_url'] ?>" />
+            </div>
+            <div class="form-group">
+                <input type="text" id="oidcUserIdentifierField" placeholder="User Identifier Field" autocomplete="off"
+                    value="<?= $oidcSettings['user_identifier_field'] ?>" />
+            </div>
+            <div class="form-group">
+                <input type="text" id="oidcScopes" placeholder="Scopes" autocomplete="off"
+                    value="<?= $oidcSettings['scopes'] ?>" />
+            </div>
+            <div class="form-group">
+                <input type="hidden" id="oidcAuthStyle" placeholder="Auth Style" autocomplete="off"
+                    value="<?= $oidcSettings['auth_style'] ?>" />
+            </div>
+            <div class="form-group-inline">
+                <input type="checkbox" id="oidcAutoCreateUser" <?= $oidcSettings['auto_create_user'] ? 'checked' : '' ?> />
+                <label for="oidcAutoCreateUser"><?= translate('create_user_automatically', $i18n) ?></label>
+            </div>
+            <div class="form-group-inline">
+                <input type="checkbox" id="oidcPasswordLoginDisabled"
+                    <?= $oidcSettings['password_login_disabled'] ? 'checked' : '' ?> />
+                <label for="oidcPasswordLoginDisabled"><?= translate('disable_password_login', $i18n) ?></label>
+            </div>
+            <div class="buttons">
+                <input type="submit" class="thin mobile-grow" value="<?= translate('save', $i18n) ?>"
+                    id="saveOidcSettingsButton" onClick="saveOidcSettingsButton()" />
+            </div>
+        </div>
+
+    </section>
+
+    <section class="account-section">
+        <header>
+            <h2><?= translate('smtp_settings', $i18n) ?></h2>
+        </header>
+        <div class="admin-form">
+            <div class="form-group-inline">
+                <input type="text" name="smtpaddress" id="smtpaddress" autocomplete="off"
+                    placeholder="<?= translate('smtp_address', $i18n) ?>" value="<?= $settings['smtp_address'] ?>" />
+                <input type="text" name="smtpport" id="smtpport" autocomplete="off"
+                    placeholder="<?= translate('port', $i18n) ?>" class="one-third" value="<?= $settings['smtp_port'] ?>" />
+            </div>
+            <div class="form-group-inline">
+                <div>
+                    <input type="radio" name="encryption" id="encryptionnone" value="none"
+                        <?= empty($settings['encryption']) || $settings['encryption'] == "none" ? "checked" : "" ?> />
+                    <label for="encryptionnone"><?= translate('none', $i18n) ?></label>
+                </div>
+                <div>
+                    <input type="radio" name="encryption" id="encryptiontls" value="tls"
+                        <?= $settings['encryption'] == "tls" ? "checked" : "" ?> />
+                    <label for="encryptiontls"><?= translate('tls', $i18n) ?></label>
+                </div>
+                <div>
+                    <input type="radio" name="encryption" id="encryptionssl" value="ssl"
+                        <?= $settings['encryption'] == "ssl" ? "checked" : "" ?> />
+                    <label for="encryptionssl"><?= translate('ssl', $i18n) ?></label>
+                </div>
+            </div>
+            <div class="form-group-inline">
+                <input type="text" name="smtpusername" id="smtpusername" autocomplete="off"
+                    placeholder="<?= translate('smtp_username', $i18n) ?>" value="<?= $settings['smtp_username'] ?>" />
+            </div>
+            <div class="form-group-inline">
+                <input type="password" name="smtppassword" id="smtppassword" autocomplete="off"
+                    placeholder="<?= translate('smtp_password', $i18n) ?>" value="<?= $settings['smtp_password'] ?>" />
+            </div>
+            <div class="form-group-inline">
+                <input type="text" name="fromemail" id="fromemail" autocomplete="off"
+                    placeholder="<?= translate('from_email', $i18n) ?>" value="<?= $settings['from_email'] ?>" />
+            </div>
+            <div class="buttons">
+                <input type="button" class="secondary-button thin mobile-grow" value="<?= translate('test', $i18n) ?>"
+                    id="testSmtpSettingsButton" onClick="testSmtpSettingsButton()" />
+                <input type="submit" class="thin mobile-grow" value="<?= translate('save', $i18n) ?>"
+                    id="saveSmtpSettingsButton" onClick="saveSmtpSettingsButton()" />
+            </div>
+            <div class="settings-notes">
+                <p>
+                    <i class="fa-solid fa-circle-info"></i> <?= translate('smtp_info', $i18n) ?>
+                </p>
+                <p>
+                    <i class="fa-solid fa-circle-info"></i>
+                    <?= translate('smtp_usage_info', $i18n) ?>
+                </p>
+            </div>
+        </div>
+    </section>
+
+    <section class="account-section">
+    <header>
+        <h2><?= translate('security_settings', $i18n) ?></h2> </header>
+    <div class="admin-form">
+        <div class="form-group-inline">
+            <input type="text" name="local_webhook_notifications_allowlist" id="local_webhook_notifications_allowlist" autocomplete="off"
+                placeholder="e.g., 192.168.1.5:8123, homeassistant.local" value="<?= htmlspecialchars($settings['local_webhook_notifications_allowlist'] ?? '', ENT_QUOTES, 'UTF-8') ?>" />
+        </div>
+        
+        <div class="buttons">
+            <input type="submit" class="thin mobile-grow" value="<?= translate('save', $i18n) ?>"
+                id="saveSecuritySettingsButton" onClick="saveSecuritySettingsButton()" />
+        </div>
+        
+        <div class="settings-notes">
+            <p>
+                <i class="fa-solid fa-circle-info"></i> 
+                <?= translate('ssrf_protection_info', $i18n) ?>
+            </p>
+            <p>
+                <i class="fa-solid fa-circle-info"></i>
+                <?= translate('local_webhook_info', $i18n) ?>
+            </p>
+        </div>
+    </div>
+</section>
+
+    <?php
+    // find unused upload logos
+
+    // Get all logos in the subscriptions table
+    $query = 'SELECT logo FROM subscriptions';
+    $stmt = $db->prepare($query);
+    $result = $stmt->execute();
+
+    $logosOnDisk = [];
+    $logosOnDB = [];
+    while ($row = $result->fetchArray(SQLITE3_ASSOC)) {
+        $logosOnDB[] = $row['logo'];
+    }
+
+    // Get all logos in the payment_methods table
+    $query = 'SELECT icon FROM payment_methods';
+    $stmt = $db->prepare($query);
+    $result = $stmt->execute();
+
+    while ($row = $result->fetchArray(SQLITE3_ASSOC)) {
+        if (!strstr($row['icon'], "images/uploads/icons/")) {
+            $logosOnDB[] = $row['icon'];
+        }
+    }
+
+    $logosOnDB = array_unique($logosOnDB);
+
+    // Get all logos in the uploads folder
+    $uploadDir = 'images/uploads/logos/';
+    $uploadFiles = scandir($uploadDir);
+
+    foreach ($uploadFiles as $file) {
+        if ($file != '.' && $file != '..' && $file != 'avatars') {
+            $logosOnDisk[] = ['logo' => $file];
+        }
+    }
+
+    // Find unused logos
+    $unusedLogos = [];
+    foreach ($logosOnDisk as $disk) {
+        $found = false;
+        foreach ($logosOnDB as $dbLogo) {
+            if ($disk['logo'] == $dbLogo) {
+                $found = true;
+                break;
+            }
+        }
+        if (!$found) {
+            $unusedLogos[] = $disk;
+        }
+    }
+
+    $logosToDelete = count($unusedLogos);
+
+    ?>
+
+    <section class="account-section">
+        <header>
+            <h2>
+                <?= translate('maintenance_tasks', $i18n) ?>
+            </h2>
+        </header>
+        <div class="maintenance-tasks">
+            <h3><?= translate('orphaned_logos', $i18n) ?></h3>
+            <div class="form-group-inline">
+                <input type="button" class="button thin mobile-grow" value="<?= translate('delete', $i18n) ?>"
+                    id="deleteUnusedLogos" onClick="deleteUnusedLogos()" <?= $logosToDelete == 0 ? 'disabled' : '' ?> />
+                <span class="number-of-logos bold"><?= $logosToDelete ?></span>
+                <?= translate('orphaned_logos', $i18n) ?>
+            </div>
+            <h3><?= translate('cronjobs', $i18n) ?></h3>
+            <div>
+                <div class="inline-row">
+                    <input type="button" value="Send Notifications" class="button tiny mobile-grow"
+                        onclick="executeCronJob('sendnotifications')">
+                    <input type="button" value="Send Cancellation Notifications" class="button tiny mobile-grow"
+                        onclick="executeCronJob('sendcancellationnotifications')">
+                    <input type="button" value="Send Password Reset Emails" class="button tiny mobile-grow"
+                        onclick="executeCronJob('sendresetpasswordemails')">
+                    <input type="button" value="Send Verification Emails" class="button tiny mobile-grow"
+                        onclick="executeCronJob('sendverificationemails')">
+                    <input type="button" value="Update Exchange Rates" class="button tiny mobile-grow"
+                        onclick="executeCronJob('updateexchange')">
+                    <input type="button" value="Update Next Payments" class="button tiny mobile-grow"
+                        onclick="executeCronJob('updatenextpayment')">
+                    <input type="button" value="Store Total Yearly Cost" class="button tiny mobile-grow"
+                        onclick="executeCronJob('storetotalyearlycost')">
+                    <input type="button" value="Generate AI Recommendations" class="button tiny mobile-grow"
+                        onclick="executeCronJob('generaterecommendations')">    
+                </div>
+                <div class="inline-row">
+                    <textarea id="cronjobResult" class="thin" readonly></textarea>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="account-section">
+        <header>
+            <h2><?= translate('backup_and_restore', $i18n) ?></h2>
+        </header>
+        <div class="form-group-inline">
+            <input type="button" class="button thin mobile-grow" value="<?= translate('backup', $i18n) ?>" id="backupDB"
+                onClick="backupDB()" />
+            <input type="button" class="secondary-button thin mobile-grow" value="<?= translate('restore', $i18n) ?>"
+                id="restoreDB" onClick="openRestoreDBFileSelect()" />
+            <input type="file" name="restoreDBFile" id="restoreDBFile" style="display: none;" onChange="restoreDB()"
+                accept=".zip">
+        </div>
+        <div class="settings-notes">
+            <p>
+                <i class="fa-solid fa-circle-info"></i>
+                <?= translate('restore_info', $i18n) ?>
+            </p>
+        </div>
+    </section>
+
+</section>
+<script src="scripts/admin.js"></script>
+
+<?php
+require_once 'includes/footer.php';
+?>

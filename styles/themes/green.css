@@ -1,0 +1,8 @@
+:root {
+    --main-color: #6B8E23; /* Dark Olive Green */
+    --main-color-rgb: 107, 142, 35;
+    --accent-color: #9ACD32; /* Yellow-Green */
+    --accent-color-rgb: 154, 205, 50;
+    --hover-color: #556B2F; /* Olive Drab */
+    --hover-color-rgb: 85, 107, 47;
+}

@@ -1,0 +1,354 @@
+body, html {
+    font-family: Barlow, 'Helvetica Neue', Helvetica, sans-serif;
+    margin: 0;
+    padding: 0;
+    background-color: #f5f5f5;
+    font-size: 14px;
+    height: 100%;
+}
+
+.content {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    height: 100%;
+}
+
+.container {
+    width: 400px;
+    margin: auto;
+    max-width: 100%;
+    padding: 20px;
+    background-color: #fff;
+    border-radius: 8px;
+    border: 1px solid #eee;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+    box-sizing: border-box;
+}
+
+@media (max-width: 768px) {
+    .container {
+        background-color: transparent;
+        border: none;
+        box-shadow: none;
+    }
+}
+
+@media (max-height: 768px) {
+    .content {
+        height: auto;
+    }
+}
+
+.container > header {
+    text-align: center;
+}
+
+header .logo-image {
+  height: 80px;
+  width: 215px;
+  margin: 0px auto;
+}
+
+header .logo-image svg {
+  height: 80px;
+  width: 215px;
+}
+
+.container > .message {
+  text-align: center;
+  font-size: 18px;
+}
+
+.container > .message a {
+  color: var(--main-color);
+  text-decoration: none;
+}
+
+h2 {
+    text-align: center;
+    margin-bottom: 20px;
+}
+
+.form-group {
+    margin-bottom: 20px;
+}
+
+.form-group-inline {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    margin-bottom: 20px;
+}
+
+label {
+    display: block;
+    margin-bottom: 5px;
+}
+
+.form-group-inline label {
+    font-weight: 300;
+    font-size: 13px;
+    margin-bottom: 0px;
+    margin-left: 8px;
+    cursor: pointer;
+}
+
+.rtl .form-group-inline label {
+    margin-right: 8px;
+    margin-left: 0px;
+}
+
+input {
+    box-sizing: border-box;
+}
+
+input[type="text"],
+input[type="email"],
+input[type="password"],
+select {
+    width: 100%;
+    padding: 15px;
+    font-size: 16px;
+    border: 1px solid #ccc;
+    border-radius: 8px;
+    outline: none;
+}
+
+input[type="submit"],
+input[type="button"],
+a.button {
+    width: 100%;
+    padding: 15px;
+    font-size: 16px;
+    background-color: var(--main-color);
+    color: #fff;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+}
+
+a.button {
+    text-decoration: none;
+    display: inline-block;
+    text-align: center;
+    box-sizing: border-box;
+}
+
+input[type="submit"]:hover,
+a.button:hover {
+    background-color: var(--hover-color);
+}
+
+input[type="button"].secondary-button,
+button.button.secondary-button,
+a.button.secondary-button {
+  background-color: #FFFFFF;
+  color: var(--main-color);
+  border: 2px solid var(--main-color);
+}
+
+input[type="button"].secondary-button:hover,
+button.button.secondary-button:hover,
+a.button.secondary-button:hover {
+  background-color: #EEEEEE;
+  color: var(--hover-color);
+  border-color: var(--hover-color);
+}
+
+input[type="checkbox"] {
+    cursor: pointer;
+    width: 25px;
+    height: 25px;
+    padding: 0px;
+    margin: 0px;
+    background-color: #fff;
+    border: 1px solid #ccc;
+    border-radius: 8px;
+    display: grid;
+    place-content: center;
+}
+
+.or-separator {
+    text-align: center;
+    display: block;
+    margin: 3px 0px 16px;
+    font-size: 16px;
+}
+
+.error {
+    display: block;
+    color: var(--error-color);
+    margin-bottom: 20px;
+}
+
+.error-box,
+.success-box {
+    display: block;
+    color: #FFFFFF;
+    margin-bottom: 20px;
+    padding: 14px 14px 16px 14px;
+    border: 1px solid var(--error-color);
+    background-color: rgba(var(--error-color-rgb), 0.8);
+    border-radius: 8px;
+}
+
+.success-box {
+    border: 1px solid var(--success-color);
+    background-color: rgba(var(--success-color-rgb), 0.5);
+}
+
+.error-box li,
+.success-box li {
+  list-style: none;
+  font-size: 15px;
+  display: flex;
+  gap: 8px;
+  align-items: baseline;
+  margin-bottom: 5px;
+}
+
+.error-box li:last-of-type,
+.success-box li:last-of-type {
+  margin-bottom: 0px;
+}
+
+.separator {
+    border-top: 1px solid #ccc;
+    padding-top: 20px;
+}
+
+.login-form-link {
+    text-align: center;
+    margin: 20px 0px;
+}
+
+.login-form-link a {
+    color: var(--main-color);
+    text-decoration: none;
+    font-size: 16px;
+}
+
+/* TOAST MESSAGE */
+
+.toast {
+    position: fixed;
+    bottom: 25px;
+    right: 30px;
+    border-radius: 12px;
+    border: 1px solid #eeeeee;
+    background: #fff;
+    padding: 20px 35px 20px 25px;
+    box-shadow: 0 6px 20px -5px rgba(0, 0, 0, 0.1);
+    overflow: hidden;
+    transform: translateX(calc(100% + 30px));
+    transition: all 0.5s cubic-bezier(0.68, -0.55, 0.265, 1.35);
+    box-sizing: border-box;
+  }
+  
+  @media (max-width: 768px) {
+    .toast {
+      bottom: 0px;
+      right: 0px;
+      left: 0px;
+      width: 100%;
+    }
+  }
+  
+  .toast.active {
+    transform: translateX(0%);
+  }
+  
+  .toast .toast-content {
+    display: flex;
+    align-items: center;
+  }
+  
+  .toast-content .toast-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 35px;
+    min-width: 35px;
+    color: #fff;
+    font-size: 20px;
+    border-radius: 50%;
+  }
+  
+  .toast-content .toast-icon.error {
+    background-color: var(--error-color);
+  }
+  
+  .toast-content .toast-icon.success {
+    background-color: var(--success-color);
+  }
+  
+  
+  .toast-content .message {
+    display: flex;
+    flex-direction: column;
+    margin: 0 20px;
+  }
+  
+  .toast-content .message .text {
+    font-size: 16px;
+    font-weight: 400;
+    color: #666666;
+  }
+  
+  .toast-content .message .text.text-1 {
+    font-weight: 600;
+    color: #333;
+  }
+  
+  .toast .close {
+    position: absolute;
+    top: 10px;
+    right: 15px;
+    padding: 5px;
+    cursor: pointer;
+    opacity: 0.7;
+  }
+  
+  .toast .close:hover {
+    opacity: 1;
+  }
+  
+  .toast .progress {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    height: 3px;
+    width: 100%;
+  
+  }
+  
+  .toast .progress:before {
+    content: "";
+    position: absolute;
+    bottom: 0;
+    right: 0;
+    height: 100%;
+    width: 100%;
+  }
+  
+  .toast .progress.error:before {
+    background-color: var(--error-color);
+  }
+  
+  .toast .progress.success:before {
+    background-color: var(--success-color);
+  }
+  
+  .progress.active:before {
+    animation: progress 5s linear forwards;
+  }
+  
+  @keyframes progress {
+    100% {
+      right: 100%;
+    }
+  }
+  
+  /* TOAST END */

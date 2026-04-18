@@ -1,0 +1,7 @@
+/db/*
+!/db/subsman.empty.db
+/images/uploads/logos/*
+!/images/uploads/logos/subsman.png
+.DS_Store
+.idea/
+.vscode/

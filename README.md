@@ -1,6 +1,6 @@
 # Subsman
 
-![Subsman Logo](images\icon\android-chrome-192x192.png)
+![Subsman Logo](images/siteicons/subsman.png)
 
 Subsman is a personal subscription tracker that helps you keep track of your subscriptions and save money.
 
